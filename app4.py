@@ -12,9 +12,7 @@ import tensorflow as tf
 
 app = Flask(__name__)
 
-# YOLO 모델 로드
-#model_path = "C:/Users/win/Desktop/flask/models/n_best.pt"
-#model = YOLO(model_path)
+# 모델 로드
 MODEL_DIR = "C:/Users/ahsld/Desktop/flask/models"
 
 # LSTM 모델 및 스케일러 로드
@@ -73,7 +71,7 @@ def predict_yolo():
     if not file:
         return "파일이 없습니다.", 400
  
-
+    model_path = os.path.join("C:/Users/ahsld/Desktop/flask/models", selected_model)
     
     # UUID 기반 파일명으로 저장
     ext = file.filename.split('.')[-1]
@@ -85,7 +83,7 @@ def predict_yolo():
         img = Image.open(file_path)
         results = model(img)
         
-        # 탐지된 객체 그리기
+        # 탐지한 객체 바운딩박스 그리기
         annotated_img = np.array(img)
         for result in results:
             for box in result.boxes:
@@ -105,7 +103,8 @@ def predict_yolo():
         result_path = os.path.join(UPLOAD_FOLDER, result_image_filename)
         cv2.imwrite(result_path, cv2.cvtColor(annotated_img, cv2.COLOR_RGB2BGR))
 
-        return render_template('YOLO_result.html', result_image=result_image_filename)
+        return render_template('YOLO_result.html', result_image=result_image_filename, model_name=selected_model)
+
 
     # 동영상 파일 처리
     elif file.filename.lower().endswith(('mp4', 'avi', 'mov')):
@@ -143,7 +142,7 @@ def predict_yolo():
         cap.release()
         out.release()
 
-        return render_template('YOLO_result.html', result_video=result_video_filename)
+        return render_template('YOLO_result.html', result_video=result_video_filename, model_name=selected_model)
 
     else:
         return "유효한 이미지 파일이 아닙니다.", 400
