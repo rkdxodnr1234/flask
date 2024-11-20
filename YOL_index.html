@@ -159,7 +159,7 @@
         </form>
     </div>
 
-    <!-- AJAX와 로딩 화면 제어 스크립트 -->
+<!-- AJAX와 로딩 화면 제어 스크립트 -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         $(document).ready(function() {
@@ -195,43 +195,5 @@
             });
         });
     </script>
-        
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-        $(document).ready(function() {
-            $('#uploadForm').on('submit', function(event) {
-                event.preventDefault();
-    
-                var fileInput = $('#fileInput')[0];
-                var file = fileInput.files[0];
-                var selectedModel = $('#modelSelect').val(); // 선택한 모델 가져오기
-    
-                if (file && file.type.startsWith('video')) {
-                    $('#loading').css('display', 'flex');
-                }
-    
-                var formData = new FormData(this);
-                formData.append('model', selectedModel);
-    
-                $.ajax({
-                    url: '/predict_yolo',
-                    type: 'POST',
-                    data: formData,
-                    contentType: false,
-                    processData: false,
-                    success: function(response) {
-                        $('#loading').hide();
-                        $('body').html(response);
-                    },
-                    error: function() {
-                        $('#loading').hide();
-                        alert('선택된 파일이 없습니다.');
-                    }
-                });
-            });
-        });
-    </script>
-    
-    
 </body>
 </html>
