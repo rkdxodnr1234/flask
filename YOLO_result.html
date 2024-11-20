@@ -1,0 +1,145 @@
+<!-- result.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLO 탐지결과</title>
+
+
+    <style>
+        h1 {
+            align-self:flex-start;
+            margin:20px;
+            color: white;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-image: url("{{ url_for('static', filename='assets/images/toto_back.jpg') }}");
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: inherit;
+            background-size: cover;
+            background-position: center;
+            filter: blur(8px);
+            z-index: -1;
+        }
+        .navbar {
+            width: 100%;
+            padding: 15px 30px;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex; 
+            justify-content: space-between;
+            align-items: center;
+            position: fixed; 
+            top: 0; 
+            z-index: 10;
+        }
+        .navbar-left { 
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: 50px;
+        }
+        .navbar-right { 
+            margin-top: -25px;
+            margin-right: 50px; 
+        }
+        .container {
+            text-align: center;
+            max-width: 400px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .media {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+        button {
+            margin-top:15px;
+            padding: 10px 20px;
+            background-color: #d27878;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px; /* 버튼 사이 간격 */
+            margin-top: 20px;
+        }
+        button:hover {
+            background-color: #b15a5a;
+            transform: translateY(-2px);
+        }
+        .button-container button {
+            padding: 10px 20px;
+            width: 120px; /* 버튼 너비를 동일하게 설정 */
+            height: 70px; /* 버튼 높이를 동일하게 설정 */
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button a {
+            color: white;
+            text-decoration: none;
+        }
+        .button-container button a {
+            color: white;
+            text-decoration: none;
+        }
+    </style>
+
+
+</head>
+<body>
+    <!-- 네비게이션 바 -->
+    <div class="navbar">
+        <div class="navbar-left" style="color: white;">
+            선택한 모델: <strong>{{ model_name }}</strong>
+        </div>
+        <div class="navbar-right">
+            <button onclick="location.href='{{ url_for('index') }}'">홈으로</button>
+        </div>
+    </div>
+    
+
+    <h1>탐지 결과</h1>
+
+    {% if result_image %}
+        <img src="{{ url_for('static', filename='assets/uploads/' + result_image) }}" alt="탐지 결과 이미지">
+    {% elif result_video %}
+    <video controls>
+        <source src="{{ url_for('static', filename='assets/uploads/' + result_video) }}" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    {% endif %}
+
+    <br><br>
+    <div class="button-container">
+        <button><a href="{{ url_for('yolo_index') }}">다시 <br>분석하기</a></button>
+    </div>    
+</body>
+</html>
