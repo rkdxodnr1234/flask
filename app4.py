@@ -9,6 +9,7 @@ import tempfile
 import uuid
 import joblib
 import tensorflow as tf
+import torch
 
 app = Flask(__name__)
 
@@ -32,10 +33,30 @@ CLASS_NAMES = {0: 'breaker', 1: 'pink', 2: 'red'}
 # 클래스별 색상 지정
 CLASS_COLORS = {0: (0, 255, 0), 1: (255, 255, 0), 2: (255, 0, 0)}
 
-def load_yolo_model(model_filename):
-    """선택한 YOLO 모델 로드"""
+def load_yolo_model(model_filename, model_type='yolov8'):
+    """YOLO 모델 로드 (v5 또는 v8 지원)"""
     model_path = os.path.join(MODEL_DIR, model_filename)
-    return YOLO(model_path)
+    
+    if model_type == 'yolov8':
+        # YOLOv8 모델 로드
+        try:
+            return YOLO(model_path)
+        except Exception as e:
+            print(f"YOLOv8 모델 로드 실패: {e}")
+            return None
+
+    elif model_type == 'yolov5':
+        # YOLOv5 모델 로드
+        try:
+            return torch.hub.load('ultralytics/yolov5', 'custom', path=model_path, force_reload=True)
+        except Exception as e:
+            print(f"YOLOv5 모델 로드 실패: {e}")
+            return None
+
+    else:
+        # 지원하지 않는 모델 타입일 경우
+        raise ValueError(f"지원되지 않는 모델 타입: {model_type}")
+
 
 @app.route('/')
 def index():
@@ -65,7 +86,12 @@ def lstm_index():
 @app.route('/predict_yolo', methods=['POST'])
 def predict_yolo():
     selected_model = request.form.get('model')
-    model = load_yolo_model(selected_model)
+    model_type = request.form.get('model_type', 'yolov8')  # 기본값: yolov8
+    model = load_yolo_model(selected_model, model_type=model_type)
+
+    if model is None:
+        return "모델 로드 실패", 500
+
     
     file = request.files.get('file')
     if not file:
@@ -83,18 +109,37 @@ def predict_yolo():
         img = Image.open(file_path)
         results = model(img)
         
+        if model_type == 'yolov8': 
+            results = model(img) 
+        elif model_type == 'yolov5': 
+            results = model(img, size=640)
+        
         # 탐지한 객체 바운딩박스 그리기
         annotated_img = np.array(img)
-        for result in results:
-            for box in result.boxes:
-                x1, y1, x2, y2 = map(int, box.xyxy[0])
-                confidence = float(box.conf[0])
-                class_id = int(box.cls[0])
-                class_name = model.names[class_id]  # 클래스 이름 얻기
+        if model_type == 'yolov8':
+            for result in results:
+                for box in result.boxes:
+                    x1, y1, x2, y2 = map(int, box.xyxy[0])
+                    confidence = float(box.conf[0])
+                    class_id = int(box.cls[0])
+                    class_name = model.names[class_id]  # 클래스 이름 얻기
 
-                color = CLASS_COLORS.get(class_id, (255, 255, 255))
+                    color = CLASS_COLORS.get(class_id, (255, 255, 255))
+                    cv2.rectangle(annotated_img, (x1, y1), (x2, y2), color, 2)
+                    label = f"{class_name}: {confidence:.2f}"
+                    cv2.putText(annotated_img, label, (x1, y1 - 10), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        
+        elif model_type == 'yolov5': 
+            for result in results.xyxy[0]: 
+                x1, y1, x2, y2 = map(int, result[:4]) 
+                confidence = float(result[4]) 
+                class_id = int(result[5]) 
+                class_name = model.names[class_id] 
+                
+                color = CLASS_COLORS.get(class_id, (255, 255, 255)) 
                 cv2.rectangle(annotated_img, (x1, y1), (x2, y2), color, 2)
-                label = f"{class_name}: {confidence:.2f}"
+                label = f"{class_name}: {confidence:.2f}" 
                 cv2.putText(annotated_img, label, (x1, y1 - 10), 
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
         
@@ -124,19 +169,34 @@ def predict_yolo():
 
             # YOLO 탐지 수행 및 결과 그리기
             img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-            results = model(img)
-            for result in results:
-                for box in result.boxes:
-                    x1, y1, x2, y2 = map(int, box.xyxy[0])
-                    confidence = float(box.conf[0])
-                    class_id = int(box.cls[0])
-                    class_name = CLASS_NAMES.get(class_id, "Unknown")# 바꾼 코드
+            
+            if model_type == 'yolov8':
+                results = model(img)
+                for result in results:
+                    for box in result.boxes:
+                        x1, y1, x2, y2 = map(int, box.xyxy[0])
+                        confidence = float(box.conf[0])
+                        class_id = int(box.cls[0])
+                        class_name = CLASS_NAMES.get(class_id, "Unknown")# 바꾼 코드
 
-                    color = (255, 255, 255) if class_id == 0 else (0, 165, 255) if class_id == 1 else (0, 0, 255)
-                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-                    label = f"{class_name}: {confidence:.2f}"
+                        color = (255, 255, 255) if class_id == 0 else (0, 165, 255) if class_id == 1 else (0, 0, 255)
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+                        label = f"{class_name}: {confidence:.2f}"
+                        cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+           
+            elif model_type == 'yolov5': 
+                results = model(img, size=640) 
+                for result in results.xyxy[0]: 
+                    x1, y1, x2, y2 = map(int, result[:4]) 
+                    confidence = float(result[4]) 
+                    class_id = int(result[5]) 
+                    class_name = CLASS_NAMES.get(class_id, "Unknown") 
+                    
+                    color = (255, 255, 255) if class_id == 0 else (0, 165, 255) if class_id == 1 else (0, 0, 255) 
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2) 
+                    label = f"{class_name}: {confidence:.2f}" 
                     cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
-
+                    
             out.write(frame)
 
         cap.release()
