@@ -137,10 +137,13 @@
         <div class="navbar-left">
             <label for="modelSelect" style="color: white;">모델 선택 :</label>
             <select id="modelSelect" name="model">
-                <option value="n_best.pt">YOLOv8n</option>
-                <option value="s_best.pt">YOLOv8s</option>
-                <option value="jn_best.pt">증강 후 YOLOv8n</option>
-                <option value="js_best.pt">증강 후 YOLOv8s</option>
+                <option value="n_best.pt" data-type="yolov8">YOLOv8n</option>
+                <option value="s_best.pt" data-type="yolov8">YOLOv8s</option>
+                <option value="jn_best.pt" data-type="yolov8">증강 후 YOLOv8n</option>
+                <option value="js_best.pt" data-type="yolov8">증강 후 YOLOv8s</option>
+                <option value="overfitting.pt" data-type="yolov8">클래스 1, 2만 증강 후 YOLOv8s</option>
+                <option value="best.pt" data-type="yolov8">연구실 컴 YOLOv8s</option>
+                <option value="YOLOv5.pt" data-type="yolov5">YOLOv5</option>
             </select>
         </div>
         <div class="navbar-right">
